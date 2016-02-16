@@ -9,7 +9,7 @@
 import XCTest
 @testable import Linq
 
-public enum Function {
+public enum Function : Int {
     case iOSDeveloper
     case AndroidDeveloper
     case VisualDesigner
@@ -133,11 +133,24 @@ extension LinqTests {
 // MARK: Select and Where
 extension LinqTests {
     public func testSelectingTeamMembers() {
-        let listOfTeamMembers = company.projects.select({ $0.teamMembers });
-        XCTAssertEqual(listOfTeamMembers.count, 2)
-        XCTAssertEqual(listOfTeamMembers[0], company.projects[0].teamMembers)
-        XCTAssertEqual(listOfTeamMembers[1], company.projects[1].teamMembers)
+        let listOfTeamMembers = company.projects.select({ $0.teamMembers })
+        XCTAssertEqual(listOfTeamMembers.count, company.projects.count)
+        for i in 0...listOfTeamMembers.count - 1 {
+            XCTAssertEqual(listOfTeamMembers[i], company.projects[i].teamMembers)
+        }
+    }
+    
+    public func testSelectingTeamMembersAndConcatinating() {
+        let listOfAllTeamMembers = company.projects.selectMany({ $0.teamMembers })
+        XCTAssertNotNil(listOfAllTeamMembers)
         
+        var allTeamMembers = [Person]()
+        company.projects.forEach {
+            allTeamMembers.appendContentsOf($0.teamMembers)
+        }
+        
+        XCTAssertEqual(listOfAllTeamMembers.count, allTeamMembers.count)
+        XCTAssertEqual(listOfAllTeamMembers, allTeamMembers)
     }
     
     public func testFilteringProjects() {
@@ -157,16 +170,21 @@ extension LinqTests {
     public func testFindFirstProject() {
         let project = company.projects.first { $0.name == "Project 1"}
         XCTAssertNotNil(project)
+        XCTAssertEqual(project, company.projects[0])
+    }
+    
+    public func testFindLastProject() {
+        
     }
     
     public func testFindNonExistingProject() {
-        let project = company.projects.first { $0.name == "Project 3"}
+        let project = company.projects.first { $0.name == "Unknown project"}
         XCTAssertNil(project)
     }
     
     public func testFilterProject1Project() {
         let projects = company.projects.except { $0.name == "Project 1" }
-        XCTAssertEqual(projects.count, 1)
+        XCTAssertEqual(projects.count, company.projects.count - 1)
         XCTAssertEqual(projects[0], company.projects[1])
     }
 }
@@ -195,52 +213,18 @@ extension LinqTests {
 extension LinqTests {
     private func generateTestCompany() -> Company {
         var company = Company()
-        company.projects = [generateFirstProject(), generateSecondProject()]
+        company.projects = [generateProject(1), generateProject(2), generateProject(3)]
         company.name = "Company Name B.V."
         return company
     }
     
-    private func generateFirstProject() -> Project {
-        return generateProjectWithName("Project 1", members: ["John #1": Function.InteractionDesigner,
-            "John #2": Function.InteractionDesigner,
-            "John #3": Function.InteractionDesigner,
-            "John #4": Function.VisualDesigner,
-            "John #5": Function.VisualDesigner,
-            "John #6": Function.AndroidDeveloper,
-            "John #7": Function.AndroidDeveloper,
-            "John #8": Function.AndroidDeveloper,
-            "John #9": Function.AndroidDeveloper,
-            "John #10": Function.iOSDeveloper,
-            "John #11": Function.iOSDeveloper,
-            "John #12": Function.iOSDeveloper,
-            "John #13": Function.iOSDeveloper,
-            "John #14": Function.ManagerOrSomething,
-            "John #15": Function.ManagerOrSomething,
-            "John #16": Function.ManagerOrSomething,
-            "John #17": Function.Tester,
-            "John #18": Function.Tester,
-            "John #19": Function.iOSDeveloper])
-    }
-    
-    private func generateSecondProject() -> Project {
-        return generateProjectWithName("Project 2", members: [
-            "John #1": Function.InteractionDesigner,
-            "John #2": Function.VisualDesigner,
-            "John #3": Function.AndroidDeveloper,
-            "John #4": Function.AndroidDeveloper,
-            "John #5": Function.Tester,
-            "John #6": Function.iOSDeveloper,
-            "John #7": Function.iOSDeveloper,
-            "John #8": Function.ManagerOrSomething,
-            "John #9": Function.ManagerOrSomething])
-    }
-    
-    private func generateProjectWithName(name : String, members : [String: Function]) -> Project {
-        var people : [Person] = []
-        members.forEach { (name, function) -> () in
-            let person = Person(firstName: name, function: function)
-            people.append(person)
+    private func generateProject(projectNumber : Int) -> Project {
+        let numberOfTeamMembers = Int(arc4random_uniform(15) + 10)
+        var teamMembers = [Person]()
+        for i in 0...numberOfTeamMembers {
+            teamMembers.append(Person(firstName: "John \(i)", function: Function(rawValue: i % 6)!))
         }
-        return Project(name: name, teamMembers: people)
+        
+        return Project(name: "Project \(projectNumber)", teamMembers: teamMembers)
     }
 }

@@ -49,6 +49,15 @@ extension SequenceType {
     }
     
     @warn_unused_result
+    public func selectMany<T>(@noescape query: (Self.Generator.Element) throws -> [T]) rethrows -> [T] {
+        var result : [T] = []
+        try self.forEach {
+            try result.appendContentsOf(query($0))
+        }
+        return result
+    }
+    
+    @warn_unused_result
     public func `where`(@noescape predicate: (Self.Generator.Element) throws -> Bool) rethrows -> [Self.Generator.Element] {
         return try self.filter(predicate);
     }
